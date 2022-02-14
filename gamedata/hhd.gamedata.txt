@@ -1,0 +1,31 @@
+"Games"
+{
+	/* Team Fortress 2 */
+	"tf"
+	{
+		"Addresses"
+		{
+			"PreventBunnyJumping"
+			{
+				"windows"
+				{
+					"signature"	"CTFGameMovement::PreventBunnyJumping"
+				}
+				
+				"linux"
+				{
+					"signature"	"CTFGameMovement::PreventBunnyJumping"
+				}
+			}
+		}
+		
+		"Offsets"
+		{
+			"CCaptureFlag::PickUp"
+			{
+				"linux"		"262"
+				"windows"	"224"
+			}
+		}
+	}
+}

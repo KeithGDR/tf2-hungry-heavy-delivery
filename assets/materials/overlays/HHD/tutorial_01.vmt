@@ -1,0 +1,10 @@
+"UnlitGeneric"
+{
+	"$basetexture" "overlays/HHD/tutorial_01"
+	"$translucent" 1
+    	"$alphatest" 1
+	"$ignorez"     "1"
+	"$no_fullbright" "1"	
+	"$vertextcolor" "1"
+	"%keywords" "tf"
+}
