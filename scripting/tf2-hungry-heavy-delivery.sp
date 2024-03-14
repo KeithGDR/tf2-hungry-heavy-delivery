@@ -53,6 +53,12 @@ TODO LIST:
 #define TF_FLAGINFO_STOLEN (1<<0)
 #define TF_FLAGINFO_DROPPED (1<<1)
 
+//Movement
+#define JUMP_SPEED 283.0
+#define DOUBLE_DUCK_HEIGHT 20
+#define DOUBLE_DUCK_HEIGHT_OFFSET 22
+#define AIR_CAP 30.0
+
 //Sourcemod Includes
 #include <sourcemod>
 
@@ -71,6 +77,17 @@ ConVar convar_Velocity_Melee;
 ConVar convar_Velocity_Melee_Double;
 ConVar convar_Velocity_Melee_Climb;
 ConVar convar_Velocity_Melee_Climb_Double;
+
+//Movement
+ConVar cvarMaxspeed;
+ConVar cvarDuckJump;
+ConVar cvarDoubleDuck;
+ConVar cvarFrametime;
+
+ConVar cvarFriction;
+ConVar cvarStopspeed;
+ConVar cvarAccelerate;
+ConVar cvarAirAccelerate;
 
 //Cookies
 Handle g_hCookie_ToggleMusic;
@@ -199,6 +216,26 @@ Handle wep_melee;
 bool g_bHanging[MAXPLAYERS + 1];
 float g_vecClimbPos[MAXPLAYERS + 1][3];
 
+//Movement
+bool gDuckjump;
+bool gDoubleDuck;
+float gSpeedcap;
+float gVirtFrametime;
+
+float sv_friction;
+float sv_stopspeed;
+float sv_accelerate;
+float sv_airaccelerate;
+
+float clCustomMaxspeed[MAXPLAYERS + 1];
+float clRealMaxspeed[MAXPLAYERS + 1];
+float clBackupSpeed [MAXPLAYERS + 1];
+float clOldAngle[MAXPLAYERS + 1];
+float clVirtTicks[MAXPLAYERS + 1];
+bool clInAir[MAXPLAYERS + 1];
+bool clLandframe[MAXPLAYERS + 1];
+int clOldButtons[MAXPLAYERS + 1];
+
 public Plugin myinfo =
 {
 	name = "[TF2] Gamemode: Hungry Heavy Delivery",
@@ -226,6 +263,37 @@ public void OnPluginStart()
 	convar_Velocity_Melee_Double = CreateConVar("sm_hhd_melee_vel_double", "1500.0");
 	convar_Velocity_Melee_Climb = CreateConVar("sm_hhd_melee_vel_climb", "4000.0");
 	convar_Velocity_Melee_Climb_Double = CreateConVar("sm_hhd_melee_vel_climb_double", "5000.0");
+
+	cvarDuckJump = CreateConVar("sm_hdd_duckjump", "1", "Allow jumping while being fully crouched.");
+	cvarDoubleDuck = CreateConVar("sm_hdd_doubleduck", "1", "Allow double ducking.");
+	cvarMaxspeed = CreateConVar("sm_hdd_speedcap", "-1.0", "The maximum speed players can reach. -1 for unlimited.");
+	cvarFrametime = CreateConVar("sm_hdd_frametime", "0.009", "Virtual frametime (in seconds) to simulate a higher tickrate. 0 to disable. Values higher than 0.015 have no effect.");
+
+	cvarFriction = FindConVar("sv_friction");
+	cvarStopspeed = FindConVar("sv_stopspeed");
+	cvarAccelerate = FindConVar("sv_accelerate");
+	cvarAirAccelerate = FindConVar("sv_airaccelerate");
+
+	cvarDuckJump.AddChangeHook(ChangeDuckJump);
+	cvarDoubleDuck.AddChangeHook(ChangeDoubleDuck);
+	cvarMaxspeed.AddChangeHook(ChangeMaxspeed);
+	cvarFrametime.AddChangeHook(ChangeFrametime);
+	cvarFriction.AddChangeHook(ChangeFriction);
+	cvarStopspeed.AddChangeHook(ChangeStopspeed);
+	cvarAccelerate.AddChangeHook(ChangeAccelerate);
+	cvarAirAccelerate.AddChangeHook(ChangeAirAccelerate);
+
+	AutoExecConfig();
+
+	ChangeDuckJump(cvarDuckJump, "", "");
+	ChangeDoubleDuck(cvarDoubleDuck, "", "");
+	ChangeMaxspeed(cvarMaxspeed, "", "");
+	ChangeFrametime(cvarFrametime, "", "");
+
+	ChangeFriction(cvarFriction, "", "");
+	ChangeStopspeed(cvarStopspeed, "", "");
+	ChangeAccelerate(cvarAccelerate, "", "");
+	ChangeAirAccelerate(cvarAirAccelerate, "", "");
 
 	RegConsoleCmd("sm_mainmenu", Command_MainMenu, "Open the main menu for Hungry Heavy Delivery.");
 	RegConsoleCmd("sm_menu", Command_MainMenu, "Open the main menu for Hungry Heavy Delivery.");
@@ -318,7 +386,7 @@ public void OnPluginStart()
 	}
 	else
 		LogError("Error parsing file: hhd.gamedata.txt");
-	
+
 	//It'd probably be better to setup code to get the seconds of a track automatically instead of caching that as well but I have yet to find a method that doesn't crash.
 	g_BackgroundMusic.PushString("hungryheavydelivery/music/jsr_electric_tooth_brush.mp3");
 	g_BackgroundMusicSeconds.Push(256.0);
@@ -369,8 +437,62 @@ public void OnPluginStart()
 	}
 }
 
+public void ChangeDuckJump(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+    gDuckjump = GetConVarBool(convar);
+}
+
+public void ChangeDoubleDuck(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+    gDoubleDuck = GetConVarBool(convar);
+}
+
+public void ChangeMaxspeed(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+    gSpeedcap = GetConVarFloat(convar);
+}
+
+public void ChangeFrametime(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+    gVirtFrametime = GetConVarFloat(convar);
+    if (gVirtFrametime < 0.0 || gVirtFrametime >= GetTickInterval())
+    {
+        gVirtFrametime = 0.0;
+        LogError("%s Virtual frametime negative or too high -> disabled.", PLUGIN_TAG);
+    }
+
+    for (int i = 1; i <= MaxClients; i++)
+        clVirtTicks[i] = 0.0;
+}
+
+public void ChangeFriction(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+    sv_friction = GetConVarFloat(convar);
+}
+
+public void ChangeStopspeed(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+    sv_stopspeed = GetConVarFloat(convar);
+}
+
+public void ChangeAccelerate(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+    sv_accelerate = GetConVarFloat(convar);
+}
+
+public void ChangeAirAccelerate(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+    sv_airaccelerate = GetConVarFloat(convar);
+}
+
 public void OnConfigsExecuted()
 {
+	//Movement
+	sv_friction = GetConVarFloat(cvarFriction);
+	sv_stopspeed = GetConVarFloat(cvarStopspeed);
+	sv_accelerate = GetConVarFloat(cvarAccelerate);
+	sv_airaccelerate = GetConVarFloat(cvarAirAccelerate);
+
 	FindConVar("tf_scout_air_dash_count").IntValue = 1;	//Setting it to three allows for pizza deliveries while maintaining airtime.
 	FindConVar("sv_airaccelerate").IntValue = 100;		//Turning in midair or bunnyhopping properly basically requires this to be high.
 }
@@ -979,6 +1101,8 @@ public void OnClientPutInServer(int client)
 {
 	if (IsFakeClient(client))
 		return;
+	
+	SetupMovement(client);
 
 	g_Player[client].connected = true;
 	g_Player[client].triggerdelay = -1;
@@ -1136,6 +1260,56 @@ public Action OnSetTransmit(int client, int entity)
 		return Plugin_Stop;
 
 	return Plugin_Continue;
+}
+
+public void OnPreThink(int client) {
+    if (!IsClientInGame(client) || !IsPlayerAlive(client))
+        return;
+
+    clRealMaxspeed[client] = GetMaxSpeed(client);
+
+    int buttons = GetClientButtons(client);
+    float vel[3], wishdir[3];
+    GetVelocity(client, vel);
+    GetWishdir(client, buttons, wishdir);
+
+    CheckGround(client);
+    HandleJumping(client, buttons, vel);
+    HandleDoubleDucking(client, buttons);
+    DoInterpolation(client, buttons, wishdir, vel);
+
+    if (!clInAir[client])
+        DoMovement(client, vel, wishdir, true);
+
+    clOldButtons[client] = buttons;
+}
+
+public void OnPostThink(int client)
+{
+	if (!IsClientInGame(client) || !IsPlayerAlive(client))
+		return;
+
+	if (GetMaxSpeed(client) != clCustomMaxspeed[client])
+		clRealMaxspeed[client] = GetMaxSpeed(client);
+
+	float vel[3];
+	GetVelocity(client, vel);
+
+	float speed = GetAbsVec(vel);
+
+	if (!clInAir[client] && clBackupSpeed[client] > 520.0)
+	{
+		ScaleVec(vel, clBackupSpeed[client] / speed);
+		DoFriction(client, vel);
+		TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, vel);
+	}
+	else if (gSpeedcap >= 0.0 && speed > gSpeedcap)
+	{
+		ScaleVec(vel, gSpeedcap / speed);
+		TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, vel);
+	}
+
+	SetMaxSpeed(client, clRealMaxspeed[client]);
 }
 
 //Stop fall damage in-general, too much to deal with and stops the normal gameplay loop.
@@ -1952,12 +2126,6 @@ public Action Timer_NextTutorialStep(Handle timer, any data)
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon, int &subtype, int &cmdnum, int &tickcount, int &seed, int mouse[2])
 {
-	/*if ((!(GetEntityFlags(client) & FL_FAKECLIENT) && buttons & IN_JUMP) && (GetEntityFlags(client) & FL_ONGROUND))
-	{
-		int nOldButtons = GetEntProp(client, Prop_Data, "m_nOldButtons");
-		SetEntProp(client, Prop_Data, "m_nOldButtons", (nOldButtons &= ~(IN_JUMP | IN_DUCK)));
-	}*/
-
 	if (IsPlayerAlive(client) && GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") < 0 && GetActiveWeaponSlot(client) == 2)
 	{
 		if(buttons & IN_JUMP && g_bHanging[client] && !(buttons & IN_DUCK))
@@ -3677,4 +3845,309 @@ void MapCircleToSquare(float out[3], const float input[3])
 	
 	out[0] = nx; 
 	out[1] = ny; 
-}  
+}
+
+void DoMovement(int client, float vel[3], const float wishdir[3], bool handleMaxspeed)
+{
+    float speed = GetAbsVec(vel);
+
+    clBackupSpeed[client] = speed;
+
+    if (speed == 0.0)
+        return;
+
+    if (wishdir[0] != 0.0 || wishdir[1] != 0.0)
+    {
+        DoFriction(client, vel);
+        Accelerate(client, vel, wishdir);
+    }
+
+    speed = GetAbsVec(vel);
+
+    if (handleMaxspeed && speed > clRealMaxspeed[client])
+    {
+        if (FloatAbs(speed - clRealMaxspeed[client]) > 0.1)
+        {
+            clCustomMaxspeed[client] = speed;
+            SetMaxSpeed(client, speed);
+        }
+    }
+}
+
+void DoInterpolation(int client, int buttons, const float wishdir[3], float vel[3])
+{
+    if (gVirtFrametime == 0.0)
+        return;
+
+    float angle = GetVecAngle(wishdir);
+
+    int mvbuttons = buttons & (IN_FORWARD | IN_BACK | IN_MOVELEFT | IN_MOVERIGHT),
+        oldmvbuttons = clOldButtons[client] & (IN_FORWARD | IN_BACK | IN_MOVELEFT | IN_MOVERIGHT);
+
+    if (clInAir[client] && !InWater(client)
+            && mvbuttons == oldmvbuttons
+            && (wishdir[0] != 0 || wishdir[1] != 0))
+    {
+        clVirtTicks[client] += (GetTickInterval() / gVirtFrametime) - 1;
+
+        if (clVirtTicks[client] >= 1.0)
+        {
+            int ticks = RoundToFloor(clVirtTicks[client]);
+            clVirtTicks[client] -= ticks;
+
+            float step = GetAngleDiff(180.0 + clOldAngle[client],
+                    180.0 + angle) / (ticks + 1);
+
+            if (step != 0.0)
+            {
+                float intwishdir[3];
+                for (int i = 1; i <= ticks; i++)
+                {
+                    VecFromAngle(clOldAngle[client] + step * i, intwishdir);
+                    DoMovement(client, vel, intwishdir, false);
+                }
+                TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, vel);
+            }
+        }
+    }
+    clOldAngle[client] = angle;
+}
+
+void HandleJumping(int client, int buttons, float vel[3])
+{
+    if (!clInAir[client] && buttons & IN_JUMP)
+    {
+        if ((gDuckjump && !(clOldButtons[client] & IN_JUMP) && buttons & IN_DUCK)
+                || (clLandframe[client]))
+        {
+            vel[2] = JUMP_SPEED;
+            TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, vel);
+        }
+    }
+}
+
+void HandleDoubleDucking(int client, int buttons)
+{
+    if (!gDoubleDuck)
+        return;
+
+    if (clOldButtons[client] & IN_DUCK && buttons & IN_DUCK == 0
+            && GetDuckState(client) == 1)
+    {
+        float origin[3], dest[3], mins[3], maxs[3];
+        GetClientAbsOrigin(client, origin);
+        GetClientAbsOrigin(client, dest);
+        GetClientMins(client, mins);
+        GetClientMaxs(client, maxs);
+        dest[2] += DOUBLE_DUCK_HEIGHT_OFFSET +
+            DOUBLE_DUCK_HEIGHT * GetEntPropFloat(client, Prop_Send, "m_flModelScale");
+
+        TR_TraceHullFilter(origin, dest, mins, maxs, MASK_SOLID, TR_FilterSelf, client);
+
+        if (!TR_DidHit(INVALID_HANDLE))
+            TeleportEntity(client, dest, NULL_VECTOR, NULL_VECTOR);
+    }
+}
+
+void DoFriction(int client, float vel[3])
+{
+    if (clInAir[client] || clLandframe[client])
+        return;
+
+    float speed = GetAbsVec(vel);
+
+    if (speed > 1)
+    {
+        float drop = GetFrictionDrop(client, speed);
+        float scale = (speed - drop) / speed;
+        if (scale < 0.0)
+            scale = 0.0;
+        ScaleVec(vel, scale);
+    }
+}
+
+void Accelerate(int client, float vel[3], const float wishdir[3])
+{
+    float maxspeed = clRealMaxspeed[client];
+
+    if (clInAir[client] && maxspeed > AIR_CAP)
+        maxspeed = AIR_CAP;
+
+    float currentspeed = DotProduct(vel, wishdir);
+    float addspeed = maxspeed - currentspeed;
+
+    if (addspeed < 0)
+        return;
+
+    float acc = GetAcceleration(client, clRealMaxspeed[client]);
+
+    if (acc > addspeed)
+        acc = addspeed;
+
+    for (int i = 0; i < 2; i++)
+        vel[i] += wishdir[i] * acc;
+}
+
+void CheckGround(int client)
+{
+    if (GetEntityFlags(client) & FL_ONGROUND)
+    {
+        clLandframe[client] = false;
+        if (clInAir[client])
+        {
+            clInAir[client] = false;
+            clLandframe[client] = true;
+        }
+    }
+    else
+    {
+        clInAir[client] = true;
+    }
+}
+
+float GetFrictionDrop(int client, float speed)
+{
+    float friction = sv_friction * GetFriction(client);
+    float control = (speed < sv_stopspeed) ? sv_stopspeed : speed;
+    return (control * friction * GetTickInterval());
+}
+
+float GetAcceleration(int client, float maxspeed)
+{
+    float frametime;
+    if (clInAir[client] && gVirtFrametime != 0.0)
+        frametime = gVirtFrametime;
+    else
+        frametime = GetTickInterval();
+
+    return (clInAir[client] ? sv_airaccelerate : sv_accelerate)
+        * frametime * maxspeed * GetFriction(client);
+}
+
+void GetViewAngle(int client, float fwd[3], float right[3])
+{
+    GetClientEyeAngles(client, fwd);
+    VecFromAngle(fwd[1], fwd);
+    right[0] = fwd[1];
+    right[1] = -fwd[0];
+    fwd[2] = right[2] = 0.0;
+}
+
+void GetWishdir(int client, int buttons, float wishdir[3])
+{
+    float fwd[3], right[3];
+    GetViewAngle(client, fwd, right);
+
+    wishdir[0] = wishdir[1] = wishdir[2] = 0.0;
+
+    if (buttons & IN_FORWARD || buttons & IN_BACK || buttons & IN_MOVERIGHT || buttons & IN_MOVELEFT)
+    {
+        if (buttons & IN_FORWARD)
+            AddVectors(wishdir, fwd, wishdir);
+        if (buttons & IN_BACK)
+            SubtractVectors(wishdir, fwd, wishdir);
+        if (buttons & IN_MOVERIGHT)
+            AddVectors(wishdir, right, wishdir);
+        if (buttons & IN_MOVELEFT)
+            SubtractVectors(wishdir, right, wishdir);
+
+        NormalizeVector(wishdir, wishdir);
+    }
+}
+
+int GetDuckState(int client)
+{
+    int ducked = GetEntityFlags(client) & FL_DUCKING;
+    int ducking = GetEntProp(client, Prop_Send, "m_bDucking");
+
+    if (!ducking && !ducked)
+        return 0;
+    if (ducking && !ducked)
+        return 1;
+    if (!ducking && ducked)
+        return 2;
+    return 3;
+}
+
+void SetupMovement(int client)
+{
+    if (IsFakeClient(client) || client < 1 || client > MAXPLAYERS)
+        return;
+
+    clCustomMaxspeed[client] = 0.0;
+    clVirtTicks[client] = 0.0;
+    clOldButtons[client] = 0;
+
+    SDKHook(client, SDKHook_PreThink, OnPreThink);
+    SDKHook(client, SDKHook_PostThink, OnPostThink);
+}
+
+void GetVelocity(int client, float vel[3])
+{
+    GetEntPropVector(client, Prop_Data, "m_vecVelocity", vel);
+}
+
+float GetFriction(int client)
+{
+    return GetEntPropFloat(client, Prop_Data, "m_flFriction");
+}
+
+bool InWater(int client)
+{
+    return !!(GetEntityFlags(client) & FL_INWATER);
+}
+
+float GetMaxSpeed(int client)
+{
+    return GetEntPropFloat(client, Prop_Data, "m_flMaxspeed");
+}
+
+void SetMaxSpeed(int client, float speed)
+{
+    SetEntPropFloat(client, Prop_Data, "m_flMaxspeed", speed);
+}
+
+public bool TR_FilterSelf(int ent, int mask, any data)
+{
+    return ent != data;
+}
+
+float GetAngleDiff(float a, float b)
+{
+    float diff = b - a;
+    if (FloatAbs(diff) > 180)
+        return sign(-diff) * (360.0 - FloatAbs(diff));
+    return diff;
+}
+
+float sign(float x)
+{
+    return x < 0 ? -1.0 : x > 0 ? 1.0 : 0.0;
+}
+
+void ScaleVec(float[] vec, float scale)
+{
+    vec[0] *= scale;
+    vec[1] *= scale;
+}
+
+float DotProduct(const float[] a, const float[] b)
+{
+    return a[0] * b[0] + a[1] * b[1];
+}
+
+float GetAbsVec(const float[] a)
+{
+    return SquareRoot(a[0] * a[0] + a[1] * a[1]);
+}
+
+float GetVecAngle(const float[] vec)
+{
+    return RadToDeg(ArcTangent2(vec[1], vec[0]));
+}
+
+void VecFromAngle(float angle, float[] vec)
+{
+    vec[0] = Cosine(DegToRad(angle));
+    vec[1] = Sine(DegToRad(angle));
+}
