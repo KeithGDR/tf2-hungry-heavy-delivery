@@ -3955,7 +3955,7 @@ stock bool EmitAmbientSoundSafe(const char[] sample, const float origin[3], int 
 		Format(sSound, sizeof(sSound), "*%s", sSound);
 	}
 
-	if (PrecacheSound(sSound)) {
+	if (!PrecacheSound(sSound)) {
 		LogError("Error playing ambient sound, not precached: %s", sSound);
 		return false;
 	}
