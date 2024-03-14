@@ -206,7 +206,10 @@ enum TFCond
 	TFCond_BurningPyro, //124: Dragon's Fury afterburn on Pyros
 	TFCond_RocketPack, //125: Thermal Thruster launched effects, prevents reusing
 	TFCond_LostFooting, //126: Less ground friction
-	TFCond_AirCurrent //127: Reduced air control and friction
+	TFCond_AirCurrent, //127: Reduced air control and friction
+	TFCond_HalloweenHellHeal, // 128: Used when a player gets teleported to hell
+	TFCond_PowerupModeDominant, // 129: Reduces effects of certain powerups
+	TFCond_ImmuneToPushback // 130: Player is immune to pushback effects
 };
 
 const float TFCondDuration_Infinite = -1.0;
@@ -227,6 +230,7 @@ public const TFHoliday TFHoliday_FullMoon;
 public const TFHoliday TFHoliday_HalloweenOrFullMoon;
 public const TFHoliday TFHoliday_HalloweenOrFullMoonOrValentines;
 public const TFHoliday TFHoliday_AprilFools;
+public const TFHoliday TFHoliday_Soldier;
 
 enum TFObjectType
 {
@@ -245,13 +249,16 @@ enum TFObjectMode
 };
 
 /**
- * Sets a client on fire for 10 seconds.
+ * Sets a client on fire.
+ *
+ * @note Fire duration is capped to 10 seconds.
  *
  * @param client        Player's index.
  * @param attacker      Attacker's index.
+ * @param duration      Duration of fire (in seconds).
  * @error               Invalid client index, client not in game, or no mod support.
  */
-native void TF2_IgnitePlayer(int client, int attacker);
+native void TF2_IgnitePlayer(int client, int attacker, float duration=10.0);
 
 /**
  * Respawns a client

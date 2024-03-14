@@ -126,7 +126,7 @@ methodmap File < Handle
 	// @param size            Size of each element, in bytes, to be read.
 	//                        Valid sizes are 1, 2, or 4.
 	// @return                Number of elements read, or -1 on error.
-	public native int Read(int[] items, int num_items, int size);
+	public native int Read(any[] items, int num_items, int size);
 
 	// Reads a UTF8 or ANSI string from a file.
 	//
@@ -152,7 +152,7 @@ methodmap File < Handle
 	// @param size            Size of each item in the array in bytes.
 	//                        Valid sizes are 1, 2, or 4.
 	// @return                True on success, false on error.
-	public native bool Write(const int[] items, int num_items, int size);
+	public native bool Write(const any[] items, int num_items, int size);
 
 	// Writes a binary string to a file.
 	//
@@ -233,6 +233,13 @@ methodmap File < Handle
 	// @return                True on success, false otherwise.
 	public native bool Seek(int position, int where);
 
+	// Flushes a file's buffered output; any buffered output
+	// is immediately written to the file.
+	// 
+	// @return              True on success or use_valve_fs specified with OpenFile,
+	//                      otherwise false on failure.
+	public native bool Flush();
+	
 	// Get the current position in the file; returns -1 on failure.
 	property int Position {
 		public native get();
@@ -307,7 +314,7 @@ native bool ReadDirEntry(Handle dir, char[] buffer, int maxlength, FileType &typ
  * Mac, this has no distinction from binary mode. On Windows, it causes the '\n'
  * character (0xA) to be written as "\r\n" (0xD, 0xA).
  *
- * Example: "rb" opens a binary file for writing; "at" opens a text file for
+ * Example: "rb" opens a binary file for reading; "at" opens a text file for
  * appending.
  *
  * @param file          File to open.
@@ -354,7 +361,7 @@ native bool ReadFileLine(Handle hndl, char[] buffer, int maxlength);
  *                      Valid sizes are 1, 2, or 4.
  * @return              Number of elements read, or -1 on error.
  */
-native int ReadFile(Handle hndl, int[] items, int num_items, int size);
+native int ReadFile(Handle hndl, any[] items, int num_items, int size);
 
 /**
  * Reads a UTF8 or ANSI string from a file.
@@ -387,7 +394,7 @@ native int ReadFileString(Handle hndl, char[] buffer, int max_size, int read_cou
  * @return              True on success, false on error.
  * @error               Invalid Handle.
  */
-native bool WriteFile(Handle hndl, const int[] items, int num_items, int size);
+native bool WriteFile(Handle hndl, const any[] items, int num_items, int size);
 
 /**
  * Writes a binary string to a file.
