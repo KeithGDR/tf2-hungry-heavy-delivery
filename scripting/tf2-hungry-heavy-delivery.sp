@@ -339,12 +339,6 @@ public void OnPluginStart()
 	g_BackgroundMusicSeconds.Push(225.0);
 
 	Database.Connect(OnSQLConnect, "default");
-}
-
-public void OnConfigsExecuted()
-{
-	FindConVar("tf_scout_air_dash_count").IntValue = 1;	//Setting it to three allows for pizza deliveries while maintaining airtime.
-	FindConVar("sv_airaccelerate").IntValue = 100;		//Turning in midair or bunnyhopping properly basically requires this to be high.
 
 	if (g_bLate)
 	{
@@ -372,6 +366,12 @@ public void OnConfigsExecuted()
 
 		g_bLate = false;
 	}
+}
+
+public void OnConfigsExecuted()
+{
+	FindConVar("tf_scout_air_dash_count").IntValue = 1;	//Setting it to three allows for pizza deliveries while maintaining airtime.
+	FindConVar("sv_airaccelerate").IntValue = 100;		//Turning in midair or bunnyhopping properly basically requires this to be high.
 }
 
 public void OnSQLConnect(Database db, const char[] error, any data)
@@ -1373,6 +1373,16 @@ public void Event_OnTeamplayRoundStart(Event event, const char[] name, bool dont
 	}
 
 	CreateTimer(0.5, Timer_ForceTauntAndSound, TIMER_FLAG_NO_MAPCHANGE);
+
+	int entity = -1; char sName[64];
+	while ((entity = FindEntityByClassname(entity, "prop_dynamic")) != -1) {
+		GetEntPropString(entity, Prop_Data, "m_iName", sName, sizeof(sName));
+
+		if (StrEqual(sName, "heavy_himself") || (StrContains(sName, "pizza_delivery_") == 0 && StrContains(sName, "person") != -1))
+		{
+			TF2_CreateGlow(entity, view_as<int>(StrEqual(sName, "heavy_himself") ? {255, 255, 255, 150} : {255, 0, 0, 150}));
+		}
+	}
 }
 
 public Action Timer_ForceTauntAndSound(Handle timer)
@@ -1491,16 +1501,7 @@ public void OnEntityCreated(int entity, const char[] classname)
 	if (StrEqual(classname, "tf_dropped_weapon"))
 		SDKHook(entity, SDKHook_Spawn, OnDroppedWeaponSpawn);
 	else if (StrEqual(classname, "prop_dynamic"))
-	{
 		SDKHook(entity, SDKHook_Spawn, OnDynamicPropSpawn);
-		SDKHook(entity, SDKHook_SpawnPost, OnDynamicPropSpawnPost);
-
-		if (g_bLate)
-		{
-			OnDynamicPropSpawn(entity);
-			OnDynamicPropSpawnPost(entity);
-		}
-	}
 	else if (StrEqual(classname, "trigger_multiple"))
 	{
 		SDKHook(entity, SDKHook_SpawnPost, OnTriggerSpawnPost);
@@ -1529,17 +1530,6 @@ public Action OnDynamicPropSpawn(int entity)
 	DispatchKeyValue(entity, "PerformanceMode", "1");
 
 	return Plugin_Continue;
-}
-
-public void OnDynamicPropSpawnPost(int entity)
-{
-	char sName[64];
-	GetEntPropString(entity, Prop_Data, "m_iName", sName, sizeof(sName));
-
-	if (StrEqual(sName, "heavy_himself") || (StrContains(sName, "pizza_delivery_") == 0 && StrContains(sName, "person") != -1))
-	{
-		TF2_CreateGlow(entity, view_as<int>(StrEqual(sName, "heavy_himself") ? {255, 255, 255, 150} : {255, 0, 0, 150}));
-	}
 }
 
 //An attempt was made to draw every zone with the tempents for beampoints but there's a limited amount of TEs.
