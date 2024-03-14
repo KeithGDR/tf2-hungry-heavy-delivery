@@ -9,8 +9,8 @@ In this mode, players play as delivery boys who are tasked with delivering pizza
 To run this custom mode, your server must meet the following requirements:
 
     * SourceMod 1.12 or higher.
-    * TF2Items (by Asherkin)
-    * TF2Attributes (by FlaminSarge/Nosoop)
+    * TF2Items (by Asherkin): https://forums.alliedmods.net/showthread.php?t=115100
+    * TF2Attributes (by FlaminSarge/Nosoop): https://github.com/nosoop/tf2attributes
     * Downloads Enabled (sv_downloadurl)
 
 ## Installation
@@ -19,6 +19,10 @@ To run this custom mode, your server must meet the following requirements:
 
     Custom Content: Download and install the custom content required for the mode. This content must be placed in the custom directory, here's an example path: tf/custom/hhd/
     mode Files: Download the modes files from this repository. Extract and place them in the tf/addons/sourcemod directory on your server.
+
+    * Pizza Intel Model: https://tf2maps.net/downloads/pizza-bag-intel.5259/
+    * Female Scout Model: https://gamebanana.com/mods/194376
+    * Female Scout Voicelines: https://gamebanana.com/sounds/download/26029#FileInfo_178246
 
 ## Configuration
 
