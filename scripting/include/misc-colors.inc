@@ -24,6 +24,9 @@
 static bool g_bInit;
 static StringMap g_hColors;
 static char g_sChatPrefix[64];
+static char g_sHighlight[32];
+static char g_sHighlight2[32];
+static char g_sHighlight3[32];
 
 static bool g_bIgnorePrefix;
 static int g_iAuthor;
@@ -38,9 +41,20 @@ static bool g_bSkipPlayers[MAXPLAYERS + 1];
 *	
 *	Return		- N/A
 */
-stock void CSetPrefix(const char[] prefix, any ...)
-{
+stock void CSetPrefix(const char[] prefix, any ...) {
 	VFormat(g_sChatPrefix, sizeof(g_sChatPrefix), prefix, 2);
+}
+
+stock void CSetHighlight(const char[] highlight, any ...) {
+	VFormat(g_sHighlight, sizeof(g_sHighlight), highlight, 2);
+}
+
+stock void CSetHighlight2(const char[] highlight, any ...) {
+	VFormat(g_sHighlight2, sizeof(g_sHighlight2), highlight, 2);
+}
+
+stock void CSetHighlight3(const char[] highlight, any ...) {
+	VFormat(g_sHighlight3, sizeof(g_sHighlight3), highlight, 2);
 }
 
 /*
@@ -49,8 +63,7 @@ stock void CSetPrefix(const char[] prefix, any ...)
 *	
 *	Return		- N/A
 */
-stock void CSkipNextPrefix()
-{
+stock void CSkipNextPrefix() {
 	g_bIgnorePrefix = true;
 }
 
@@ -61,10 +74,10 @@ stock void CSkipNextPrefix()
 *	
 *	Return		- N/A
 */
-stock void CSetNextAuthor(int client)
-{
-	if (client < 1 || client > MaxClients || !IsClientInGame(client))
+stock void CSetNextAuthor(int client) {
+	if (client < 1 || client > MaxClients || !IsClientInGame(client)) {
 		ThrowError("Invalid client index %i", client);
+	}
 	
 	g_iAuthor = client;
 }
@@ -76,10 +89,10 @@ stock void CSetNextAuthor(int client)
 *	
 *	Return		- N/A
 */
-stock void CSkipNextClient(int client)
-{
-	if (client < 1 || client > MaxClients)
+stock void CSkipNextClient(int client) {
+	if (client < 1 || client > MaxClients) {
 		ThrowError("Invalid client index %i", client);
+	}
 	
 	g_bSkipPlayers[client] = true;
 }
@@ -93,10 +106,10 @@ stock void CSkipNextClient(int client)
 *	
 *	Return		- N/A
 */
-stock void CPrintToChat(int client, const char[] message, any ...)
-{
-	if (client < 1 || client > MaxClients || !IsClientInGame(client) || IsFakeClient(client))
+stock void CPrintToChat(int client, const char[] message, any ...) {
+	if (client < 1 || client > MaxClients || !IsClientInGame(client) || IsFakeClient(client)) {
 		return;
+	}
 	
 	SetGlobalTransTarget(client);
 
@@ -123,11 +136,12 @@ stock void CPrintToChat(int client, const char[] message, any ...)
 *	
 *	Return		- N/A
 */
-stock void CPrintToChatEx(int client, int author, const char[] message, any ...)
-{
+stock void CPrintToChatEx(int client, int author, const char[] message, any ...) {
 	CSetNextAuthor(author);
+
 	char buffer[MAX_BUFFER_SIZE];
 	VFormat(buffer, sizeof(buffer), message, 4);
+
 	CPrintToChat(client, buffer);
 }
 
@@ -139,14 +153,11 @@ stock void CPrintToChatEx(int client, int author, const char[] message, any ...)
 *	
 *	Return		- N/A
 */
-stock void CPrintToChatAll(const char[] message, any ...)
-{
+stock void CPrintToChatAll(const char[] message, any ...) {
 	char buffer[MAX_BUFFER_SIZE];
 
-	for (int client = 1; client <= MaxClients; client++)
-	{
-		if (!IsClientInGame(client) || g_bSkipPlayers[client])
-		{
+	for (int client = 1; client <= MaxClients; client++) {
+		if (!IsClientInGame(client) || g_bSkipPlayers[client]) {
 			g_bSkipPlayers[client] = false;
 			continue;
 		}
@@ -176,11 +187,12 @@ stock void CPrintToChatAll(const char[] message, any ...)
 *	
 *	Return		- N/A
 */
-stock void CPrintToChatAllEx(int author, const char[] message, any ...)
-{
+stock void CPrintToChatAllEx(int author, const char[] message, any ...) {
 	CSetNextAuthor(author);
+
 	char buffer[MAX_BUFFER_SIZE];
 	VFormat(buffer, sizeof(buffer), message, 3);
+
 	CPrintToChatAll(buffer);
 }
 
@@ -193,14 +205,11 @@ stock void CPrintToChatAllEx(int author, const char[] message, any ...)
 *	
 *	Return		- N/A
 */
-stock void CPrintToChatTeam(int team, const char[] message, any ...)
-{
+stock void CPrintToChatTeam(int team, const char[] message, any ...) {
 	char buffer[MAX_BUFFER_SIZE];
 
-	for (int client = 1; client <= MaxClients; client++)
-	{
-		if (!IsClientInGame(client) || GetClientTeam(client) != team || g_bSkipPlayers[client])
-		{
+	for (int client = 1; client <= MaxClients; client++) {
+		if (!IsClientInGame(client) || GetClientTeam(client) != team || g_bSkipPlayers[client]) {
 			g_bSkipPlayers[client] = false;
 			continue;
 		}
@@ -229,11 +238,12 @@ stock void CPrintToChatTeam(int team, const char[] message, any ...)
 *	
 *	Return		- N/A
 */
-stock void CPrintToChatTeamEx(int team, int author, const char[] message, any ...)
-{
+stock void CPrintToChatTeamEx(int team, int author, const char[] message, any ...) {
 	CSetNextAuthor(author);
+
 	char buffer[MAX_BUFFER_SIZE];
 	VFormat(buffer, sizeof(buffer), message, 4);
+
 	CPrintToChatTeam(team, buffer);
 }
 
@@ -247,23 +257,21 @@ stock void CPrintToChatTeamEx(int team, int author, const char[] message, any ..
 *	
 *	Return		- N/A
 */
-stock void CPrintToChatAdmins(int bitflags, const char[] message, any ...)
-{
+stock void CPrintToChatAdmins(int bitflags, const char[] message, any ...) {
 	char buffer[MAX_BUFFER_SIZE];
 	AdminId iAdminID;
 
-	for (int client = 1; client <= MaxClients; client++)
-	{
-		if (!IsClientInGame(client) || g_bSkipPlayers[client])
-		{
+	for (int client = 1; client <= MaxClients; client++) {
+		if (!IsClientInGame(client) || g_bSkipPlayers[client]) {
 			g_bSkipPlayers[client] = false;
 			continue;
 		}
 
 		iAdminID = GetUserAdmin(client);
 		
-		if (iAdminID == INVALID_ADMIN_ID || !(GetAdminFlags(iAdminID, Access_Effective) & bitflags))
+		if (iAdminID == INVALID_ADMIN_ID || !(GetAdminFlags(iAdminID, Access_Effective) & bitflags)) {
 			continue;
+		}
 
 		SetGlobalTransTarget(client);
 		VFormat(buffer, sizeof(buffer), message, 3);
@@ -290,11 +298,12 @@ stock void CPrintToChatAdmins(int bitflags, const char[] message, any ...)
 *	
 *	Return		- N/A
 */
-stock void CPrintToChatAdminsEx(int bitflags, int author, const char[] message, any ...)
-{
+stock void CPrintToChatAdminsEx(int bitflags, int author, const char[] message, any ...) {
 	CSetNextAuthor(author);
+
 	char buffer[MAX_BUFFER_SIZE];
 	VFormat(buffer, sizeof(buffer), message, 4);
+
 	CPrintToChatTeam(bitflags, buffer);
 }
 
@@ -307,28 +316,33 @@ stock void CPrintToChatAdminsEx(int bitflags, int author, const char[] message, 
 *	
 *	Return		- N/A
 */
-stock void CReplyToCommand(int client, const char[] message, any ...)
-{
-	if (client < 0 || client > MaxClients)
+stock void CReplyToCommand(int client, const char[] message, any ...) {
+	if (client < 0 || client > MaxClients) {
 		ThrowError("Invalid client index %d", client);
+	}
 
-	if (client != 0 && !IsClientInGame(client))
+	if (client != 0 && !IsClientInGame(client)) {
 		ThrowError("Client %d is not in game", client);
+	}
+
+	SetGlobalTransTarget(client);
 
 	char buffer[MAX_BUFFER_SIZE];
-	SetGlobalTransTarget(client);
 	VFormat(buffer, sizeof(buffer), message, 3);
 
 	AddPrefixAndDefaultColor(buffer, sizeof(buffer));
 	g_bIgnorePrefix = false;
 
-	if (GetCmdReplySource() == SM_REPLY_TO_CONSOLE)
-	{
+	if (GetCmdReplySource() == SM_REPLY_TO_CONSOLE) {
 		CRemoveColors(buffer, sizeof(buffer));
 		PrintToConsole(client, "%s", buffer);
+	} else {
+		CProcessVariables(buffer, sizeof(buffer));
+		CAddWhiteSpace(buffer, sizeof(buffer));
+
+		SendPlayerMessage(client, buffer, g_iAuthor);
+		g_iAuthor = 0;
 	}
-	else
-		CPrintToChat(client, "%s", buffer);
 }
 
 /*
@@ -343,13 +357,14 @@ stock void CReplyToCommand(int client, const char[] message, any ...)
 *	
 *	Return		- N/A
 */
-stock void CShowActivity(int client, const char[] message, any ...)
-{
-	if (client < 0 || client > MaxClients)
+stock void CShowActivity(int client, const char[] message, any ...) {
+	if (client < 0 || client > MaxClients) {
 		ThrowError("Invalid client index %d", client);
+	}
 	
-	if (client != 0 && !IsClientInGame(client))
+	if (client != 0 && !IsClientInGame(client)) {
 		ThrowError("Client %d is not in game", client);
+	}
 
 	char buffer[MAX_BUFFER_SIZE];
 	SetGlobalTransTarget(client);
@@ -372,13 +387,14 @@ stock void CShowActivity(int client, const char[] message, any ...)
 *	
 *	Return		- N/A
 */
-stock void CShowActivityEx(int client, const char[] tag, const char[] message, any ...)
-{
-	if (client < 0 || client > MaxClients)
+stock void CShowActivityEx(int client, const char[] tag, const char[] message, any ...) {
+	if (client < 0 || client > MaxClients) {
 		ThrowError("Invalid client index %d", client);
+	}
 
-	if (client != 0 && !IsClientInGame(client))
+	if (client != 0 && !IsClientInGame(client)) {	
 		ThrowError("Client %d is not in game", client);
+	}
 
 	char buffer[MAX_BUFFER_SIZE]; char sBufferTag[MAX_BUFFER_SIZE];
 	SetGlobalTransTarget(client);
@@ -403,13 +419,14 @@ stock void CShowActivityEx(int client, const char[] tag, const char[] message, a
 *	
 *	Return		- N/A
 */
-stock void CShowActivity2(int client, const char[] tag, const char[] message, any ...)
-{
-	if (client < 0 || client > MaxClients)
+stock void CShowActivity2(int client, const char[] tag, const char[] message, any ...) {
+	if (client < 0 || client > MaxClients) {
 		ThrowError("Invalid client index %d", client);
+	}
 
-	if (client != 0 && !IsClientInGame(client))
+	if (client != 0 && !IsClientInGame(client)) {	
 		ThrowError("Client %d is not in game", client);
+	}
 
 	char buffer[MAX_BUFFER_SIZE]; char sBufferTag[MAX_BUFFER_SIZE];
 	SetGlobalTransTarget(client);
@@ -432,8 +449,7 @@ stock void CShowActivity2(int client, const char[] tag, const char[] message, an
 *	
 *	Return		- N/A
 */
-stock void CRemoveColors(char[] msg, int size)
-{
+stock void CRemoveColors(char[] msg, int size) {
 	CProcessVariables(msg, size, true);
 }
 
@@ -446,39 +462,32 @@ stock void CRemoveColors(char[] msg, int size)
 *	
 *	Return		- N/A
 */
-stock void CProcessVariables(char[] msg, int size, bool removecolors = false)
-{
+stock void CProcessVariables(char[] msg, int size, bool removecolors = false) {
 	Init();
 
 	char[] sOut = new char[size]; char[] sCode = new char[size]; char[] color = new char[size];
 	int iOutPos = 0; int iCodePos = -1;
 	int iMsgLen = strlen(msg);
 
-	for (int i = 0; i < iMsgLen; i++)
-	{
-		if (msg[i] == '{')
+	for (int i = 0; i < iMsgLen; i++) {
+		if (msg[i] == '{') {
 			iCodePos = 0;
+		}
 
-		if (iCodePos > -1)
-		{
+		if (iCodePos > -1) {
 			sCode[iCodePos] = msg[i];
 			sCode[iCodePos + 1] = '\0';
 
-			if (msg[i] == '}' || i == iMsgLen - 1)
-			{
+			if (msg[i] == '}' || i == iMsgLen - 1) {
 				strcopy(sCode, strlen(sCode) - 1, sCode[1]);
 				StringToLower(sCode);
 
-				if (CGetColor(sCode, color, size))
-				{
-					if (!removecolors)
-					{
+				if (CGetColor(sCode, color, size)) {
+					if (!removecolors) {
 						StrCat(sOut, size, color);
 						iOutPos += strlen(color);
 					}
-				}
-				else
-				{
+				} else {
 					Format(sOut, size, "%s{%s}", sOut, sCode);
 					iOutPos += strlen(sCode) + 2;
 				}
@@ -486,9 +495,9 @@ stock void CProcessVariables(char[] msg, int size, bool removecolors = false)
 				iCodePos = -1;
 				strcopy(sCode, size, "");
 				strcopy(color, size, "");
-			}
-			else
+			} else {
 				iCodePos++;
+			}
 
 			continue;
 		}
@@ -510,46 +519,38 @@ stock void CProcessVariables(char[] msg, int size, bool removecolors = false)
 *	
 *	Return		- True if found, false otherwise.
 */
-stock bool CGetColor(const char[] name, char[] color, int size)
-{
-	if (name[0] == '\0')
+stock bool CGetColor(const char[] name, char[] color, int size) {
+	if (name[0] == '\0') {
 		return false;
+	}
 
-	if (name[0] == '@')
-	{
+	if (name[0] == '@') {
 		int iSpace;
 		char sData[64]; char m_sName[64];
 		strcopy(m_sName, sizeof(m_sName), name[1]);
 
-		if ((iSpace = FindCharInString(m_sName, ' ')) != -1 && (iSpace + 1 < strlen(m_sName)))
-		{
+		if ((iSpace = FindCharInString(m_sName, ' ')) != -1 && (iSpace + 1 < strlen(m_sName))) {
 			strcopy(m_sName, iSpace + 1, m_sName);
 			strcopy(sData, sizeof(sData), m_sName[iSpace + 1]);
 		}
 
-		if (color[0] != '\0')
+		if (color[0] != '\0') {
 			return true;
-	}
-	else if (name[0] == '#')
-	{
-		if (strlen(name) == 7)
-		{
+		}
+	} else if (name[0] == '#') {
+		if (strlen(name) == 7) {
 			Format(color, size, "\x07%s", name[1]);
 			return true;
 		}
 		
-		if (strlen(name) == 9)
-		{
+		if (strlen(name) == 9) {
 			Format(color, size, "\x08%s", name[1]);
 			return true;
 		}
-	}
-	else if (StrContains(name, "player ", false) == 0 && strlen(name) > 7)
-	{
+	} else if (StrContains(name, "player ", false) == 0 && strlen(name) > 7) {
 		int client = StringToInt(name[7]);
 
-		if (client < 1 || client > MaxClients || !IsClientInGame(client))
-		{
+		if (client < 1 || client > MaxClients || !IsClientInGame(client)) {
 			strcopy(color, size, "\x01");
 			LogError("Invalid client index %d", client);
 			return false;
@@ -557,17 +558,22 @@ stock bool CGetColor(const char[] name, char[] color, int size)
 
 		strcopy(color, size, "\x01");
 		
-		switch (GetClientTeam(client))
-		{
-			case 1: g_hColors.GetString("engine 8", color, size);
-			case 2: g_hColors.GetString("engine 9", color, size);
-			case 3: g_hColors.GetString("engine 11", color, size);
+		switch (GetClientTeam(client)) {
+			case 1: {
+				g_hColors.GetString("engine 8", color, size);
+			}
+			case 2: {
+				g_hColors.GetString("engine 9", color, size);
+			}
+			case 3: {
+				g_hColors.GetString("engine 11", color, size);
+			}
 		}
 		
 		return true;
-	}
-	else
+	} else {
 		return g_hColors.GetString(name, color, size);
+	}
 
 	return false;
 }
@@ -579,10 +585,10 @@ stock bool CGetColor(const char[] name, char[] color, int size)
 *	
 *	Return		- True if found, false otherwise.
 */
-stock bool CExistColor(const char[] name)
-{
-	if (name[0] == '\0' || name[0] == '@' || name[0] == '#')
+stock bool CExistColor(const char[] name) {
+	if (name[0] == '\0' || name[0] == '@' || name[0] == '#') {
 		return false;
+	}
 
 	char color[64];
 	return g_hColors.GetString(name, color, sizeof(color));
@@ -598,14 +604,13 @@ stock bool CExistColor(const char[] name)
 *	
 *	Return		- N/A
 */
-stock void CSayText2(int client, const char[] message, int author, bool chat = true)
-{
-	if (client < 1 || client > MaxClients)
+stock void CSayText2(int client, const char[] message, int author, bool chat = true) {
+	if (client < 1 || client > MaxClients) {
 		return;
+	}
 	
 	Handle hMsg = StartMessageOne("SayText2", client, USERMSG_RELIABLE|USERMSG_BLOCKHOOKS);
-	if (GetFeatureStatus(FeatureType_Native, "GetUserMessageType") == FeatureStatus_Available && GetUserMessageType() == UM_Protobuf)
-	{
+	if (GetFeatureStatus(FeatureType_Native, "GetUserMessageType") == FeatureStatus_Available && GetUserMessageType() == UM_Protobuf) {
 		PbSetInt(hMsg, "ent_idx", author);
 		PbSetBool(hMsg, "chat", chat);
 		PbSetString(hMsg, "msg_name", message);
@@ -613,9 +618,7 @@ stock void CSayText2(int client, const char[] message, int author, bool chat = t
 		PbAddString(hMsg, "params", "");
 		PbAddString(hMsg, "params", "");
 		PbAddString(hMsg, "params", "");
-	}
-	else
-	{
+	} else {
 		BfWriteByte(hMsg, author);
 		BfWriteByte(hMsg, true);
 		BfWriteString(hMsg, message);
@@ -632,8 +635,7 @@ stock void CSayText2(int client, const char[] message, int author, bool chat = t
 *	
 *	Return		- N/A
 */
-stock void CAddWhiteSpace(char[] buffer, int size)
-{
+stock void CAddWhiteSpace(char[] buffer, int size) {
 	if (!IsSource2009())
 		Format(buffer, size, " %s", buffer);
 }
@@ -644,14 +646,14 @@ stock void CAddWhiteSpace(char[] buffer, int size)
 
 stock bool Init()
 {
-	if (g_bInit)
-	{
+	if (g_bInit) {
 		LoadColors();
 		return true;
 	}
 
-	for (int i = 1; i <= MaxClients; i++)
+	for (int i = 1; i <= MaxClients; i++) {
 		g_bSkipPlayers[i] = false;
+	}
 	
 	LoadColors();
 	g_bInit = true;
@@ -659,18 +661,17 @@ stock bool Init()
 	return true;
 }
 
-stock void LoadColors()
-{
-	if (g_hColors == null)
+stock void LoadColors() {
+	if (g_hColors == null) {
 		g_hColors = new StringMap();
-	else
+	} else {
 		g_hColors.Clear();
+	}
 		
 	g_hColors.SetString("default", "\x01");
 	g_hColors.SetString("teamcolor", "\x03");
 	
-	if (IsSource2009())
-	{
+	if (IsSource2009()) {
 		g_hColors.SetString("aliceblue", "\x07F0F8FF");
 		g_hColors.SetString("allies", "\x074D7942");
 		g_hColors.SetString("ancient", "\x07EB4B4B");
@@ -844,9 +845,7 @@ stock void LoadColors()
 		g_hColors.SetString("whitesmoke", "\x07F5F5F5");
 		g_hColors.SetString("yellow", "\x07FFFF00");
 		g_hColors.SetString("yellowgreen", "\x079ACD32");
-	}
-	else
-	{
+	} else {
 		g_hColors.SetString("red", "\x07");
 		g_hColors.SetString("lightred", "\x0F");
 		g_hColors.SetString("darkred", "\x02");
@@ -882,40 +881,50 @@ stock void LoadColors()
 	g_hColors.SetString("engine 16", "\x10");
 }
 
-stock bool HasBrackets(const char[] sSource)
-{
+stock bool HasBrackets(const char[] sSource) {
 	return (sSource[0] == '{' && sSource[strlen(sSource) - 1] == '}');
 }
 
-stock void StringToLower(char[] sSource)
-{
-	for (int i = 0; i < strlen(sSource); i++)
-	{
-		if (sSource[i] == '\0')
+stock void StringToLower(char[] sSource) {
+	for (int i = 0; i < strlen(sSource); i++) {
+		if (sSource[i] == '\0') {
 			break;
+		}
 
 		sSource[i] = CharToLower(sSource[i]);
 	}
 }
 
-stock bool IsSource2009()
-{
+stock bool IsSource2009() {
 	EngineVersion iEngineVersion = GetEngineVersion();
 	return (iEngineVersion == Engine_CSS || iEngineVersion == Engine_TF2 || iEngineVersion == Engine_HL2DM || iEngineVersion == Engine_DODS);
 }
 
-stock void AddPrefixAndDefaultColor(char[] message, int size)
-{
-	if (g_sChatPrefix[0] != '\0' && !g_bIgnorePrefix)
+stock void AddPrefixAndDefaultColor(char[] message, int size) {
+	if (g_sChatPrefix[0] != '\0' && !g_bIgnorePrefix) {
 		Format(message, size, "%s {default}%s", g_sChatPrefix, message);
-	else
+	} else {
 		Format(message, size, "%s", message);
+	}
+	
+	if (strlen(g_sHighlight) > 0) {	
+		ReplaceString(message, size, "{H1}", g_sHighlight);
+	}
+	
+	if (strlen(g_sHighlight2) > 0) {
+		ReplaceString(message, size, "{H2}", g_sHighlight2);
+	}
+	
+	if (strlen(g_sHighlight3) > 0) {
+		ReplaceString(message, size, "{H3}", g_sHighlight3);
+	}
 }
 
 stock void SendPlayerMessage(int client, char[] message, int author  = 0)
 {
-	if (author > 0 && author <= MaxClients && IsClientInGame(author))
+	if (author > 0 && author <= MaxClients && IsClientInGame(author)) {
 		CSayText2(client, message, author);
-	else
+	} else {
 		PrintToChat(client, message);
+	}
 }

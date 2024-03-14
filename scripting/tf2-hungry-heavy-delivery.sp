@@ -15,7 +15,7 @@ TODO LIST:
 
 //Defines
 #define PLUGIN_DESCRIPTION "A new gamemode revolved around delivering pizzas."
-#define PLUGIN_VERSION "1.1.3"
+#define PLUGIN_VERSION "1.1.4"
 #define PLUGIN_TAG "[HHD]"
 #define PLUGIN_TAG_COLORED "{crimson}[HHD]{beige}"
 
@@ -1388,6 +1388,8 @@ public Action Timer_ForceTauntAndSound(Handle timer)
 			EmitSoundToClientSafe(i, sSound);
 		}
 	}
+
+	return Plugin_Continue;
 }
 
 //Convenience
@@ -1525,6 +1527,8 @@ public Action OnDynamicPropSpawn(int entity)
 	//optional fixes
 	DispatchKeyValue(entity, "DisableCollision", "1");
 	DispatchKeyValue(entity, "PerformanceMode", "1");
+
+	return Plugin_Continue;
 }
 
 public void OnDynamicPropSpawnPost(int entity)
@@ -1534,10 +1538,7 @@ public void OnDynamicPropSpawnPost(int entity)
 
 	if (StrEqual(sName, "heavy_himself") || (StrContains(sName, "pizza_delivery_") == 0 && StrContains(sName, "person") != -1))
 	{
-		char sBuffer[256];
-		FormatEx(sBuffer, sizeof(sBuffer), "%s_glow", sName);
-
-		TF2_CreateGlow(sBuffer, entity, view_as<int>(StrEqual(sName, "heavy_himself") ? {255, 255, 255, 150} : {255, 0, 0, 150}));
+		TF2_CreateGlow(entity, view_as<int>(StrEqual(sName, "heavy_himself") ? {255, 255, 255, 150} : {255, 0, 0, 150}));
 	}
 }
 
@@ -1718,6 +1719,8 @@ public Action Timer_NextSong(Handle timer, any data)
 	int client = data;
 	g_Player[client].backgroundmusictimer = null;
 	PlayBackgroundMusic(client);
+
+	return Plugin_Continue;
 }
 
 void StopBackgroundMusic(int client)
@@ -1820,14 +1823,14 @@ public Action TF2_CalcIsAttackCritical(int client, int weapon, char[] weaponname
 				SetEntProp(client, Prop_Send, "m_iAirDash", 0);
 
 				int primary = GetPlayerWeaponSlot(client, 0);
-				int current_clip = GetClip(primary);
-				int current_ammo = GetAmmo(client, primary);
+				int current_clip = GetWeaponClip(primary);
+				int current_ammo = GetWeaponAmmo(client, primary);
 				int amount = 3;
 
 				if (current_ammo >= amount && current_clip < amount)
 				{
-					SetAmmo(client, primary, current_ammo - amount);
-					SetClip(primary, amount);
+					SetWeaponAmmo(client, primary, current_ammo - amount);
+					SetWeaponClip(primary, amount);
 				}
 			}
 
@@ -2162,7 +2165,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		{
 			CreateParticle("hammer_impact_button", vecOrigin, 10.0);
 			EmitSoundToAllSafe("items/para_close.wav", client);
-			PushAllPlayersFromPoint(vecOrigin, 500.0, 500.0, 0, client);
+			PushPlayersFromPoint(vecOrigin, 500.0, 500.0, 0, client);
 			DamageRadius(vecOrigin, 500.0, 5.0, client);
 		}
 
@@ -2566,6 +2569,8 @@ public Action Timer_RepeatAirSound(Handle timer, any data)
 
 		EmitAmbientSoundSafe("ambient/desert_wind.wav", vecOrigin);	//Bugged
 	}
+
+	return Plugin_Continue;
 }
 
 float FinishTimer(int client)
@@ -2715,6 +2720,8 @@ public int MenuHandler_MainMenu(Menu menu, MenuAction action, int param1, int pa
 		case MenuAction_End:
 			delete menu;
 	}
+
+	return 0;
 }
 
 void OpenHowToMenu(int client)
@@ -2739,6 +2746,7 @@ public int MenuHandler_Void(Menu menu, MenuAction action, int param1, int param2
 {
 	OpenMainMenu(param1);
 	delete menu;
+	return 0;
 }
 
 public void TF2_OnWaitingForPlayersStart()
@@ -2823,6 +2831,8 @@ public int MenuHandler_Credits(Menu menu, MenuAction action, int param1, int par
 		case MenuAction_End:
 			delete menu;
 	}
+
+	return 0;
 }
 
 public Action Command_Records(int client, int args)
@@ -2874,6 +2884,8 @@ public int MenuHandler_Records(Menu menu, MenuAction action, int param1, int par
 		case MenuAction_End:
 			delete menu;
 	}
+
+	return 0;
 }
 
 public Action Command_TopAirtimes(int client, int args)
@@ -2943,6 +2955,8 @@ public int MenuHandler_TopAirtimes(Menu menu, MenuAction action, int param1, int
 		case MenuAction_End:
 			delete menu;
 	}
+
+	return 0;
 }
 
 public Action Command_ResetAirtimeRecord(int client, int args)
@@ -3000,6 +3014,8 @@ public int MenuHandler_ResetAirtimeRecords(Menu menu, MenuAction action, int par
 		case MenuAction_End:
 			delete menu;
 	}
+
+	return 0;
 }
 
 public void onUpdateRecord(Database db, DBResultSet results, const char[] error, any data)
@@ -3073,6 +3089,8 @@ public int MenuHandler_TopDeliveryTimes(Menu menu, MenuAction action, int param1
 		case MenuAction_End:
 			delete menu;
 	}
+
+	return 0;
 }
 
 public Action Command_ResetDeliveryRecord(int client, int args)
@@ -3130,6 +3148,8 @@ public int MenuHandler_ResetDeliveryRecords(Menu menu, MenuAction action, int pa
 		case MenuAction_End:
 			delete menu;
 	}
+
+	return 0;
 }
 
 public void onUpdateRecord2(Database db, DBResultSet results, const char[] error, any data)
@@ -3187,6 +3207,8 @@ public int MenuHandler_CurrentTimes(Menu menu, MenuAction action, int param1, in
 		case MenuAction_End:
 			delete menu;
 	}
+
+	return 0;
 }
 
 void OpenCurrentDeliveryTimes(int client)
@@ -3218,6 +3240,8 @@ public int MenuHandler_CurrentDeliveryRecords(Menu menu, MenuAction action, int 
 		case MenuAction_End:
 			delete menu;
 	}
+
+	return 0;
 }
 
 public Action Command_Tutorial(int client, int args)
@@ -3331,6 +3355,8 @@ public int MenuHandler_TutorialMenu(Menu menu, MenuAction action, int param1, in
 		case MenuAction_End:
 			delete menu;
 	}
+
+	return 0;
 }
 
 public Action Command_SetGamemode(int client, int args)
@@ -3421,6 +3447,8 @@ public int MenuHandler_SetGamemode(Menu menu, MenuAction action, int param1, int
 		case MenuAction_End:
 			delete menu;
 	}
+
+	return 0;
 }
 
 public Action Command_SetMutations(int client, int args)
@@ -3514,6 +3542,8 @@ public int MenuHandler_ToggleMutation(Menu menu, MenuAction action, int param1, 
 		case MenuAction_End:
 			delete menu;
 	}
+
+	return 0;
 }
 
 public Action Command_EndGame(int client, int args)

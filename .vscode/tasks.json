@@ -12,7 +12,7 @@
             },
 
             "windows":{
-                 "command": "${workspaceFolder}\\scripting\\spcomp.exe",
+                 "command": "${workspaceFolder}\\scripting\\spcomp64.exe",
             },
 
             "args": [
