@@ -201,11 +201,11 @@ float g_vecClimbPos[MAXPLAYERS + 1][3];
 
 public Plugin myinfo =
 {
-	name = "Hungry Heavy Delivery",
-	author = "Keith Warren (Drixevel)",
+	name = "[TF2] Gamemode: Hungry Heavy Delivery",
+	author = "Drixevel, Movement Tech by mphe",
 	description = PLUGIN_DESCRIPTION,
 	version = PLUGIN_VERSION,
-	url = "http://www.vertexheights.com/"
+	url = "https://drixevel.dev/"
 };
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
@@ -218,6 +218,7 @@ public void OnPluginStart()
 {
 	LoadTranslations("common.phrases");
 
+	CreateConVar("sm_hdd_version", PLUGIN_VERSION, PLUGIN_DESCRIPTION, FCVAR_DONTRECORD);
 	convar_Default_Time = CreateConVar("sm_hhd_default_time", "300");
 	convar_Velocity_Primary = CreateConVar("sm_hhd_primary_vel", "3250");
 	convar_Velocity_Primary_Double = CreateConVar("sm_hhd_primary_vel_double", "3500");
