@@ -2315,16 +2315,16 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 			new_record = true;
 
 			char sSteamID[32];
-			GetClientAuthId(client, AuthId_Steam2, sSteamID, sizeof(sSteamID));
+			if (GetClientAuthId(client, AuthId_Steam2, sSteamID, sizeof(sSteamID))) {
+				if (g_Database != null)
+				{
+					char sName[128];
+					SQL_FetchClientName(client, g_Database, sName, sizeof(sName));
 
-			if (g_Database != null)
-			{
-				char sName[128];
-				SQL_FetchClientName(client, g_Database, sName, sizeof(sName));
-
-				char sQuery[256];
-				g_Database.Format(sQuery, sizeof(sQuery), "INSERT INTO `hungry_heavy_delivery_records` (name, steamid, record_airtime, record_deliveries, map) VALUES ('%s', '%s', '%f', '%i', '%s') ON DUPLICATE KEY UPDATE record_airtime = '%f', record_deliveries = '%i';", sName, sSteamID, g_Airtime[client].currentairtimerecord, g_Airtime[client].currentdeliveriesrecord, sCurrentMap, g_Airtime[client].currentairtimerecord, g_Airtime[client].currentdeliveriesrecord);
-				g_Database.Query(onInsertRecord2, sQuery);
+					char sQuery[256];
+					g_Database.Format(sQuery, sizeof(sQuery), "INSERT INTO `hungry_heavy_delivery_records` (name, steamid, record_airtime, record_deliveries, map) VALUES ('%s', '%s', '%f', '%i', '%s') ON DUPLICATE KEY UPDATE record_airtime = '%f', record_deliveries = '%i';", sName, sSteamID, g_Airtime[client].currentairtimerecord, g_Airtime[client].currentdeliveriesrecord, sCurrentMap, g_Airtime[client].currentairtimerecord, g_Airtime[client].currentdeliveriesrecord);
+					g_Database.Query(onInsertRecord2, sQuery);
+				}
 			}
 
 			float offset[3] = {0.0, 0.0, 80.0};
@@ -3170,14 +3170,16 @@ public int MenuHandler_ResetAirtimeRecords(Menu menu, MenuAction action, int par
 				if (g_Database != null)
 				{
 					char sSteamID[32];
-					GetClientAuthId(param1, AuthId_Steam2, sSteamID, sizeof(sSteamID));
+					if (GetClientAuthId(param1, AuthId_Steam2, sSteamID, sizeof(sSteamID))) {
+						char sQuery[256];
+						g_Database.Format(sQuery, sizeof(sQuery), "UPDATE `hungry_heavy_delivery_records` SET record_airtime = '0.0' WHERE steamid = '%s' AND map = '%s';", sSteamID, sCurrentMap);
+						g_Database.Query(onUpdateRecord, sQuery);
 
-					char sQuery[256];
-					g_Database.Format(sQuery, sizeof(sQuery), "UPDATE `hungry_heavy_delivery_records` SET record_airtime = '0.0' WHERE steamid = '%s' AND map = '%s';", sSteamID, sCurrentMap);
-					g_Database.Query(onUpdateRecord, sQuery);
-
-					g_Airtime[param1].currentairtimerecord = 0.0;
-					CPrintToChat(param1, "%s You have reset your airtime record for this map successfully.", PLUGIN_TAG_COLORED);
+						g_Airtime[param1].currentairtimerecord = 0.0;
+						CPrintToChat(param1, "%s You have reset your airtime record for this map successfully.", PLUGIN_TAG_COLORED);
+					} else {
+						CPrintToChat(param1, "%s Failure resetting your airtime record, please try again soon.", PLUGIN_TAG_COLORED);
+					}
 				}
 				else
 					CPrintToChat(param1, "%s Failure resetting your airtime record, please try again soon.", PLUGIN_TAG_COLORED);
@@ -3214,6 +3216,10 @@ public Action Command_TopDeliveries(int client, int args)
 
 void OpenTopDeliveries(int client)
 {
+	if (g_Database == null) {
+		return;
+	}
+	
 	char sQuery[256];
 	FormatEx(sQuery, sizeof(sQuery), "SELECT name, record_deliveries FROM `hungry_heavy_delivery_records` WHERE map = '%s' ORDER BY record_deliveries DESC LIMIT 0,25;", sCurrentMap);
 	g_Database.Query(TQuery_OnShowTopDeliveries, sQuery, GetClientUserId(client));
@@ -3304,14 +3310,16 @@ public int MenuHandler_ResetDeliveryRecords(Menu menu, MenuAction action, int pa
 				if (g_Database != null)
 				{
 					char sSteamID[32];
-					GetClientAuthId(param1, AuthId_Steam2, sSteamID, sizeof(sSteamID));
+					if (GetClientAuthId(param1, AuthId_Steam2, sSteamID, sizeof(sSteamID))) {
+						char sQuery[256];
+						g_Database.Format(sQuery, sizeof(sQuery), "UPDATE `hungry_heavy_delivery_records` SET record_deliveries = '0' WHERE steamid = '%s' AND map = '%s';", sSteamID, sCurrentMap);
+						g_Database.Query(onUpdateRecord2, sQuery);
 
-					char sQuery[256];
-					g_Database.Format(sQuery, sizeof(sQuery), "UPDATE `hungry_heavy_delivery_records` SET record_deliveries = '0' WHERE steamid = '%s' AND map = '%s';", sSteamID, sCurrentMap);
-					g_Database.Query(onUpdateRecord2, sQuery);
-
-					g_Airtime[param1].currentdeliveriesrecord = 0;
-					CPrintToChat(param1, "%s You have reset your delivery record for this map successfully.", PLUGIN_TAG_COLORED);
+						g_Airtime[param1].currentdeliveriesrecord = 0;
+						CPrintToChat(param1, "%s You have reset your delivery record for this map successfully.", PLUGIN_TAG_COLORED);
+					} else {
+						CPrintToChat(param1, "%s Failure resetting your delivery record, please try again soon.", PLUGIN_TAG_COLORED);
+					}
 				}
 				else
 					CPrintToChat(param1, "%s Failure resetting your delivery record, please try again soon.", PLUGIN_TAG_COLORED);
