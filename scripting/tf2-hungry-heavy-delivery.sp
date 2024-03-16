@@ -15,7 +15,7 @@ TODO LIST:
 
 //Defines
 #define PLUGIN_DESCRIPTION "A new gamemode revolved around delivering pizzas."
-#define PLUGIN_VERSION "1.1.4"
+#define PLUGIN_VERSION "1.1.5"
 #define PLUGIN_TAG "[HHD]"
 #define PLUGIN_TAG_COLORED "{crimson}[HHD]{beige}"
 
@@ -69,6 +69,8 @@ TODO LIST:
 #include <clientprefs>
 #include <tf2items>
 
+#include <tf2-hungry-heavy-delivery>
+
 //ConVars
 ConVar convar_Default_Time;
 ConVar convar_Velocity_Primary;
@@ -97,7 +99,7 @@ Handle g_hCookie_IsFemale;
 
 //Globals
 Database g_Database;
-char sCurrentMap[32];
+char sCurrentMap[64];
 bool g_bLate;
 bool g_bBetweenRounds;
 bool g_bPlayersFrozen;
@@ -142,7 +144,7 @@ enum struct Player
 		this.destination = -1;
 		this.laststop = -1;
 
-		this.totalpizzas = -1;
+		this.totalpizzas = 0;
 		this.climbs = -1;
 	}
 }
@@ -236,6 +238,8 @@ bool clInAir[MAXPLAYERS + 1];
 bool clLandframe[MAXPLAYERS + 1];
 int clOldButtons[MAXPLAYERS + 1];
 
+GlobalForward g_OnAirtimeLanded;
+
 public Plugin myinfo =
 {
 	name = "[TF2] Gamemode: Hungry Heavy Delivery",
@@ -247,6 +251,15 @@ public Plugin myinfo =
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
+	RegPluginLibrary("tf2-hungry-heavy-delivery");
+
+	CreateNative("HHD_GetTopSpeed", Native_GetTopSpeed);
+	CreateNative("HHD_GetTotalPizzas", Native_GetTotalPizzas);
+	CreateNative("HHD_GetTotalClimbs", Native_GetTotalClimbs);
+	CreateNative("HHD_GetCurrentDestination", Native_GetCurrentDestination);
+
+	g_OnAirtimeLanded = new GlobalForward("HHD_OnAirtimeLanded", ET_Ignore, Param_Cell, Param_Float, Param_Cell);
+
 	g_bLate = late;
 	return APLRes_Success;
 }
@@ -1067,7 +1080,7 @@ int GetGameWinner()
 	{
 		if (IsClientInGame(i))
 		{
-			if (g_Player[i].totalpizzas< 1)
+			if (g_Player[i].totalpizzas < 1)
 				continue;
 
 			if (winner == -1)
@@ -2332,9 +2345,16 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 		FormatEx(sDifference, sizeof(sDifference), "%.2f seconds behind record", finished - g_Airtime[client].currentairtimerecord);
 
 		CPrintToChat(client, "%s Accomplished Airtime: %.2f (%s) (Highest Speed: %.2f)", PLUGIN_TAG_COLORED, finished, new_record ? "NEW RECORD" : sDifference, g_Airtime[client].topspeed);
-		g_Airtime[client].topspeed = 0.0;
 
 		EmitSoundToClientSafe(client, "ui/hitsound.wav");
+
+		Call_StartForward(g_OnAirtimeLanded);
+		Call_PushCell(client);
+		Call_PushCell(finished);
+		Call_PushCell(new_record);
+		Call_Finish();
+
+		g_Airtime[client].topspeed = 0.0;
 
 		if (finished >= (g_Airtime[client].currentairtimerecord - 5.0))
 		{
@@ -4150,4 +4170,44 @@ void VecFromAngle(float angle, float[] vec)
 {
     vec[0] = Cosine(DegToRad(angle));
     vec[1] = Sine(DegToRad(angle));
+}
+
+public int Native_GetTopSpeed(Handle plugin, int numParams) {
+	int client = GetNativeCell(1);
+
+	if (client < 1 || client > MaxClients) {
+		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid client index %d", client);
+	}
+
+	return view_as<any>(g_Airtime[client].topspeed);
+}
+
+public int Native_GetTotalPizzas(Handle plugin, int numParams) {
+	int client = GetNativeCell(1);
+
+	if (client < 1 || client > MaxClients) {
+		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid client index %d", client);
+	}
+
+	return g_Player[client].totalpizzas;
+}
+
+public int Native_GetTotalClimbs(Handle plugin, int numParams) {
+	int client = GetNativeCell(1);
+
+	if (client < 1 || client > MaxClients) {
+		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid client index %d", client);
+	}
+
+	return g_Player[client].climbs;
+}
+
+public int Native_GetCurrentDestination(Handle plugin, int numParams) {
+	int client = GetNativeCell(1);
+
+	if (client < 1 || client > MaxClients) {
+		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid client index %d", client);
+	}
+
+	return g_Player[client].destination;
 }
