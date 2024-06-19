@@ -52,7 +52,7 @@ For the optimal experience, it is recommended to use the custom map designed spe
 
     https://steamcommunity.com/sharedfiles/filedetails/?id=1299919295
 
-Replace XXXXX with the actual item ID of the workshop map. Subscribe to the map and add it to your server's map rotation to make it available for play.
+Subscribe to the map and add it to your server's map rotation to make it available for play.
 
 ## Support
 
